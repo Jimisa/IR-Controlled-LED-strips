@@ -3,7 +3,7 @@
 
 #include <FastLED.h>
 
-#define LED_PIN     10
+#define LED_PIN     11
 #define COLOR_ORDER GRB
 #define CHIPSET     WS2811
 #define NUM_LEDS    21
@@ -14,6 +14,7 @@ bool activeLEDS[NUM_LEDS];
 int brightness = 80;
 int timeTospendPerWay = 3000;
 CRGB currentColor = CRGB::Yellow;
+CRGB colorArray[5] = {CRGB::White,CRGB::Red,CRGB::Yellow,CRGB::Blue,CRGB::Green};
 
 /*
 Remote hex values map
@@ -25,13 +26,27 @@ FF28D7  FFA857  FF6897  FFE817
 FF18E7  FF9867  FF58A7  FFD827
 */
 
-int RECV_PIN = 3;
+int RECV_PIN = 7;
 
 IRrecv irrecv(RECV_PIN);
 
 decode_results results;
 
+int b1Val;
+int b2Val;
+int b3Val;
+int lastb2Val = HIGH;
+int buttonStatus = HIGH;
+
+
+unsigned long lastToogledTime = 0;
+unsigned long lastHightoLowTime = 0;
+unsigned long debounceDelay = 30;
+
+int currentButtonPosition = 0;
+
 void setColor() {
+
   FastLED.clear();
   for (int i = 0; i < NUM_LEDS; i++) {
     if (activeLEDS[i]) {
@@ -43,6 +58,11 @@ void setColor() {
 }
 
 void setup() {
+  
+  pinMode(8,INPUT_PULLUP);
+  pinMode(9,INPUT_PULLUP);
+  pinMode(10,INPUT_PULLUP);
+
   Serial.begin(9600);
 
   FastLED.addLeds<WS2811, LED_PIN,BRG>(leds, NUM_LEDS);
@@ -60,6 +80,61 @@ void setup() {
 }
 
 void loop() {
+
+  b1Val = digitalRead(8);
+  b2Val = digitalRead(10);
+  b3Val = digitalRead(9);
+  
+  if (b1Val == LOW) {
+    Serial.println("B1 pressed");
+    for (int i = 0; i < NUM_LEDS/2; i++) {
+      activeLEDS[i] =  !(activeLEDS[i]);
+    }
+    setColor();
+    delay(300);
+  }
+  if (b2Val != lastb2Val) {
+    lastToogledTime = millis();
+    Serial.println(lastToogledTime);
+  }
+
+  if ((millis() - lastToogledTime) > debounceDelay) {
+    if (b2Val != buttonStatus) {
+      buttonStatus = b2Val;
+      if (buttonStatus == HIGH) {
+        if ((millis() - lastHightoLowTime) < 1000) {
+          currentButtonPosition=(currentButtonPosition+1) % 5;
+          currentColor = colorArray[currentButtonPosition];
+          setColor();
+          //Serial.println ("change color");
+        }
+      } else {
+        lastHightoLowTime = millis();
+        //Serial.println ("button pressed");
+      }
+    } else {
+      if (((millis() - lastHightoLowTime) > 1000) && buttonStatus == LOW) {
+        brightness-=2;
+        FastLED.setBrightness(brightness);
+        FastLED.show();
+        //Serial.println("change brightness");
+        delay(100);
+      }
+    }
+
+  }
+  lastb2Val = b2Val;
+
+  if (b3Val == LOW) {
+    //Serial.println("B3 pressed");
+    for (int i = NUM_LEDS/2; i < NUM_LEDS; i++) {
+      activeLEDS[i] =  !(activeLEDS[i]);
+    }
+    setColor();
+
+    delay(300);
+  }
+
   if (irrecv.decode(&results)) {
     Serial.println(results.value);
     irrecv.resume(); // Receive the next value

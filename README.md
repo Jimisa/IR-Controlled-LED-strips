@@ -6,7 +6,7 @@ With a WS2811 LED strip, you can control any LED on the strip and manage RGB or 
 
 1. Arduino ATM 328P or clone _slow but cheap_
 2. WS2811 LED strip _cheap_
-3. IR sensor (like TOP4838) with any standard remote control _I used the one packed with a commercial LED bulb_
+3. IR sensor (like TSOP4838) with any standard remote control _I used the one packed with a commercial LED bulb_
 4. SPST switch
 5. LM2596 voltage regulator for the MCU power supply _or any voltage reg. that fits the 12V -> 5V_
 6. 2A fuse and holder _2A fuse is enough for approx. a 1.5m long strip_
